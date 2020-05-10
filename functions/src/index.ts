@@ -50,3 +50,46 @@ export const callNumberOfOJTs = functions.https.onCall(async (data, context) => 
         "total": totalCount
     };
 });
+export const getCollectionQueryTotalCount = functions.https.onCall(async (data, context) => {
+    console.log("User: " + data.collection)
+    const collection = data.collection;
+    const isActiveRequired = data.isActiveRequired
+    let totalCount;
+    if(isActiveRequired !== null && isActiveRequired === true){
+        totalCount = await db.collection(collection)
+        .where("active", "==", true)
+        .get().then(function(snapshots){
+            console.log("Snapshots: " + snapshots.docs.length)
+            return (snapshots !== null ? snapshots.docs.length : 0);
+        })
+        .catch(function(error) {
+            console.log("Error getting documents: ", error);
+        });
+    }
+    else{
+        totalCount = await db.collection(collection)
+        .get().then(function(snapshots){
+            console.log("Snapshots: " + snapshots.docs.length)
+            return (snapshots !== null ? snapshots.docs.length : 0);
+        })
+        .catch(function(error) {
+            console.log("Error getting documents: ", error);
+        });
+    }
+    
+    return {
+        "total": totalCount
+    };
+});
+
+export const assignRecordIdToOJT = functions.firestore.document('assigned_ojts/{doc_id}')
+        .onCreate((change, context) => {
+            const documentId = context.params.doc_id;
+            change.ref.update({
+                record_id: documentId
+            }).then(_ => {
+                console.log('record Id added successfully');
+            }).catch(error => {
+                console.error(error, 'Error adding record Id');
+            });
+});
