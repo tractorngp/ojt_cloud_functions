@@ -93,11 +93,47 @@ export const getCollectionQueryTotalCount = functions.https.onCall(async (data, 
 });
 
 export const assignRecordIdToOJT = functions.firestore.document('assigned_ojts/{doc_id}')
-        .onCreate((change, context) => {
+        .onCreate(async(change, context) => {
             const documentId = context.params.doc_id;
+
+            const userRef = change.get('assigned_to');
+            const ojt_name = change.get('ojt_name');
+            console.log("OJT name: " + ojt_name);
+            userRef.get().then((userData: any) => {
+                console.log('User token: ' + userData.data().tokenId);
+                db.collection('users').doc(userData.data().tokenId).onSnapshot(async (snapshot) => {
+                    const user = snapshot.data();
+                    const deviceTokenToSend = user?.pushToken;
+                    console.log("Device Token: " + deviceTokenToSend);
+                    const payload = {
+                        notification: {
+                            title: 'You have a new OJT!',
+                            body: `Hey ` + user?.name + `, you have been assigned : ` + change.get('ojt_name'),
+                            icon: "https://firebasestorage.googleapis.com/v0/b/ojtappl.appspot.com/o/ic_launcher.png?alt=media&token=952a8a52-8e2d-42c2-812b-ca3bc9c53467"
+                        }
+                    };
+                    console.log('Sending notification');
+                    const response = await admin.messaging().sendToDevice(deviceTokenToSend, payload);
+                    response.results.forEach((result, index) => {
+                        const error = result.error;
+                        if (error) {
+                            console.error('Failure sending notification to', deviceTokenToSend, error);
+                            // Cleanup the tokens who are not registered anymore.
+                            if (error.code === 'messaging/invalid-registration-token' ||
+                                error.code === 'messaging/registration-token-not-registered') {
+                                    console.log("Error sending notification");
+                            }
+                        }
+                        else{
+                            console.log('Success sending notification');
+                        }
+                    });
+                })
+            });
+
             change.ref.update({
                 record_id: documentId
-            }).then(_ => {
+            }).then( _ => {
                 console.log('record Id added successfully');
             }).catch(error => {
                 console.error(error, 'Error adding record Id');
@@ -131,7 +167,7 @@ export const sendEmailToUser = functions.firestore.document('users/{doc_id}')
                 from: 'Tractor NGP <tractorpgapp@gmail.com>',
                 to: email,
                 subject: 'Tractor NGP OJT app registration', // email subject
-                html: `<p style="font-size: 16px;">User ID:` + tokenID + `</p> <br />
+                html: `<p style="font-size: 16px;">Welcome to OJT app. You have been registered with User ID:` + tokenID + `</p> <br />
                 Password: `+ pw +`
                 ` // email content in HTML
             };
