@@ -180,4 +180,51 @@ export const sendEmailToUser = functions.firestore.document('users/{doc_id}')
                 console.log(info);
             });
 });
-   
+
+export const deleteUserWithData = functions.firestore.document('users/{doc_id}')
+        .onDelete(async (snapshot, context) => {
+        let userRef = snapshot.ref.path;
+
+        let writeBatch = db.batch();
+
+        db.collection('assigned_ojts')
+        .where("assigned_to", "==", userRef).onSnapshot((snapshot) => {
+            let ojts = snapshot.docs;
+
+            ojts.forEach((ojt) => {
+                let ojtRef = ojt.ref;
+                writeBatch.delete(ojtRef);
+            });
+
+            db.collection('groups')
+            .where("group_members", "==", userRef).onSnapshot((snapshot) => {
+                let groups = snapshot.docs;
+                groups.forEach((group) => {
+                    let groupMembers = group.get('group_members');
+                    let newGroupMembers: any[] = [];
+                    groupMembers.forEach((member: any) => {
+                        if(member !== userRef){
+                            newGroupMembers.push(member);
+                        }
+                    });
+                    
+                    writeBatch.update(group.ref, {'group_members': newGroupMembers});
+                });
+
+                writeBatch.commit().then( data => {
+                    console.log("Done deleting user associated data");
+                    
+                }).catch(error => {
+                    alert('Error while assigning OJT');
+                    console.log(error);
+                });
+                
+            }, (err) => {
+                console.log("Error fetching documents" + err);
+            });
+
+        }, (err) => {
+            console.log("Error fetching documents")
+        });
+
+});
