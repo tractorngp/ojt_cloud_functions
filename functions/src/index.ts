@@ -9,7 +9,7 @@ admin.initializeApp();
 // https://firebase.google.com/docs/functions/typescript
 const db = admin.firestore();
 
-let transporter = nodemailer.createTransport({
+const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: 'tractorpgapp@gmail.com',
@@ -183,30 +183,31 @@ export const sendEmailToUser = functions.firestore.document('users/{doc_id}')
 
 export const deleteUserWithData = functions.firestore.document('users/{doc_id}')
         .onDelete(async (snapshot, context) => {
-        let userRef = snapshot.ref;
+        const userRef = snapshot.ref;
 
-        let writeBatch = db.batch();
+        const writeBatch = db.batch();
 
         db.collection('assigned_ojts')
-        .where("assigned_to", "==", userRef).onSnapshot((snapshot) => {
-            let ojts = snapshot.docs;
+        .where("assigned_to", "==", userRef).onSnapshot((ojtSnapshot) => {
+            const ojts = ojtSnapshot.docs;
 
             ojts.forEach((ojt) => {
-                let ojtRef = ojt.ref;
+                const ojtRef = ojt.ref;
                 writeBatch.delete(ojtRef);
             });
 
             db.collection('groups')
-            .where("group_members", "==", userRef).onSnapshot((snapshot) => {
-                let groups = snapshot.docs;
+            .where("group_members", "==", userRef).onSnapshot((groupsSnapshot) => {
+                const groups = groupsSnapshot.docs;
                 groups.forEach((group) => {
-                    let groupMembers = group.get('group_members');
+                    const groupMembers = group.get('group_members');
                     let newGroupMembers: any[] = [];
                     groupMembers.forEach((member: any) => {
                         if(member !== userRef){
                             newGroupMembers.push(member);
                         }
                     });
+                    newGroupMembers = newGroupMembers;
                     
                     writeBatch.update(group.ref, {'group_members': newGroupMembers});
                 });
