@@ -183,7 +183,7 @@ export const sendEmailToUser = functions.firestore.document('users/{doc_id}')
 
 export const deleteUserWithData = functions.firestore.document('users/{doc_id}')
         .onDelete(async (snapshot, context) => {
-        let userRef = snapshot.ref.path;
+        let userRef = snapshot.ref;
 
         let writeBatch = db.batch();
 
