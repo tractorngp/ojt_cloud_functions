@@ -200,7 +200,7 @@ export const deleteUserWithData = functions.firestore.document('users/{doc_id}')
             .where("group_members", "array-contains", userRef).onSnapshot((groupsSnapshot) => {
                 const groups = groupsSnapshot.docs;
                 console.log("Groups length:" + groups.length)
-                groups.forEach(group => {
+                groups.forEach((group) => {
                     const groupMembers: any[] = group.data()['group_members'];
                     console.log("groupMembers length:" + groupMembers.length)
                     let newGroupMembers: any[] = [];
@@ -212,7 +212,13 @@ export const deleteUserWithData = functions.firestore.document('users/{doc_id}')
                     writeBatch.update(group.ref, {'group_members': newGroupMembers});
                 });
 
-                
+                writeBatch.commit().then( data => {
+                    console.log("Done deleting user associated data");
+                    
+                }).catch(error => {
+                    alert('Error while assigning OJT');
+                    console.log(error);
+                });
                 
             }, (err) => {
                 console.log("Error fetching documents" + err);
