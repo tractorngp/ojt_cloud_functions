@@ -188,7 +188,7 @@ export const deleteUserWithData = functions.firestore.document('users/{doc_id}')
         const writeBatch = db.batch();
 
         db.collection('assigned_ojts')
-        .where("assigned_to", "==", userRef).onSnapshot((ojtSnapshot) => {
+        .where("assigned_to", "==", userRef).onSnapshot(async (ojtSnapshot) => {
             const ojts = ojtSnapshot.docs;
 
             ojts.forEach((ojt) => {
@@ -197,28 +197,22 @@ export const deleteUserWithData = functions.firestore.document('users/{doc_id}')
             });
 
             db.collection('groups')
-            .where("group_members", "==", userRef).onSnapshot((groupsSnapshot) => {
+            .where("group_members", "array-contains", userRef).onSnapshot((groupsSnapshot) => {
                 const groups = groupsSnapshot.docs;
-                groups.forEach((group) => {
-                    const groupMembers = group.get('group_members');
+                console.log("Groups length:" + groups.length)
+                groups.forEach(group => {
+                    const groupMembers: any[] = group.data()['group_members'];
+                    console.log("groupMembers length:" + groupMembers.length)
                     let newGroupMembers: any[] = [];
-                    groupMembers.forEach((member: any) => {
-                        if(member !== userRef){
-                            newGroupMembers.push(member);
-                        }
-                    });
-                    newGroupMembers = newGroupMembers;
-                    
+                    console.log("Path: " + userRef.path + " 2: " + groupMembers[0].path)
+                    newGroupMembers = groupMembers.filter(async(rec) => {
+                        return (userRef.path !== rec.path)
+                    })
+                    console.log("Group members count: " + newGroupMembers.length)
                     writeBatch.update(group.ref, {'group_members': newGroupMembers});
                 });
 
-                writeBatch.commit().then( data => {
-                    console.log("Done deleting user associated data");
-                    
-                }).catch(error => {
-                    alert('Error while assigning OJT');
-                    console.log(error);
-                });
+                
                 
             }, (err) => {
                 console.log("Error fetching documents" + err);
