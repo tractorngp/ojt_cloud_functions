@@ -200,24 +200,29 @@ export const deleteUserWithData = functions.firestore.document('users/{doc_id}')
             .where("group_members", "array-contains", userRef).onSnapshot((groupsSnapshot) => {
                 const groups = groupsSnapshot.docs;
                 console.log("Groups length:" + groups.length)
-                groups.forEach((group) => {
+                groups.forEach(async (group, index) => {
                     const groupMembers: any[] = group.data()['group_members'];
                     console.log("groupMembers length:" + groupMembers.length)
                     let newGroupMembers: any[] = [];
                     console.log("Path: " + userRef.path + " 2: " + groupMembers[0].path)
-                    newGroupMembers = groupMembers.filter(async(rec) => {
+                    newGroupMembers = await groupMembers.filter(rec => {
+                        console.log("User path: " + userRef.path)
+                        console.log("rec path: " + rec.path)
                         return (userRef.path !== rec.path)
                     })
                     console.log("Group members count: " + newGroupMembers.length)
                     writeBatch.update(group.ref, {'group_members': newGroupMembers});
-                });
 
-                writeBatch.commit().then( data => {
-                    console.log("Done deleting user associated data");
-                    
-                }).catch(error => {
-                    alert('Error while assigning OJT');
-                    console.log(error);
+                    console.log("Index: " + index + " group length: " + groupMembers.length)
+                    if(index == (groupMembers.length - 1)){
+                        writeBatch.commit().then( data => {
+                            console.log("Done deleting user associated data");
+                            
+                        }).catch(error => {
+                            alert('Error while assigning OJT');
+                            console.log(error);
+                        });
+                    }
                 });
                 
             }, (err) => {
