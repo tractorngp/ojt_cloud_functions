@@ -141,14 +141,14 @@ export const assignRecordIdToOJT = functions.firestore.document('assigned_ojts/{
 });
 
 export const updatePassword = functions.https.onCall(async (data, context) => {
-    console.log("Updating Password");
+    // console.log("Updating Password");
     let hashVal: any;
     const tokenId = data.tokenId;
     const currPass = data.currentPassword;
     const newPass = data.newPassword;
-    console.log("TokenID: " + tokenId)
-    console.log("Current Pass: " + currPass)
-    console.log("New Pass: " + newPass)
+    // console.log("TokenID: " + tokenId)
+    // console.log("Current Pass: " + currPass)
+    // console.log("New Pass: " + newPass)
     let user = await db.collection('users').doc(tokenId).get().then(function(snapshot){
         return snapshot.data()
     })
@@ -157,42 +157,41 @@ export const updatePassword = functions.https.onCall(async (data, context) => {
     let resFinal
     
     resFinal = await bcrypt.compare(currPass, user?.hpw).then(async (result) => {
-        console.log("Passwords match: " + result)
+        // console.log("Passwords match: " + result)
         if(result){
             let rF = await bcrypt.hash(newPass, "$2b$10$naep/GGixFkQDlpnBuEJAO").then(async (res) => {
                 hashVal = res;
-                console.log("No Errors")
+                // console.log("No Errors")
                 let updated = await userRef.update({
                     hpw: hashVal,
                     resetPassword: false
                 }).then(_ => {
-                    console.log("Return 2")
+                    // console.log("Return 2")
                     console.log('User updated successfully');
                     return true
                 }).catch(error => {
-                    console.log("Return 3")
+                    // console.log("Return 3")
                     console.error(error, 'Error updating User');
                     return false
                 });
                 return updated
             }).catch(err1 => {
-                console.log("Return 4")
+                // console.log("Return 4")
                 console.log(err1);
                 return false
             });
             return rF;
         }
         else{
-            console.log("Return 5")
-            console.log()
+            // console.log("Return 5")
             return false
         }
     }).catch(err => {
-        console.log("Return 7")
+        // console.log("Return 7")
         console.log(err);
         return false
     });
-    console.log("Final: ")
+    // console.log("Final: ")
     console.log(resFinal)
     return {data: resFinal}
     
