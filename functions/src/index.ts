@@ -143,10 +143,9 @@ export const assignRecordIdToOJT = functions.firestore.document('assigned_ojts/{
 export const updatePassword = functions.https.onCall(async (data, context) => {
     console.log("Creating User");
     let hashVal: any;
-    const userData = data.user;
+    const tokenId = data.tokenId;
     const currPass = data.currentPassword;
     const newPass = data.newPassword;
-    const tokenId = userData.tokenId;
     db.collection('users').doc(tokenId).onSnapshot(async (snapshot) => {
         const user = snapshot.data();
         let sameVal = false;
