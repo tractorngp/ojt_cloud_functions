@@ -140,6 +140,51 @@ export const assignRecordIdToOJT = functions.firestore.document('assigned_ojts/{
             });
 });
 
+export const updatePassword = functions.https.onCall(async (data, context) => {
+    console.log("Creating User");
+    let hashVal: any;
+    const userData = data.user;
+    const currPass = data.currentPassword;
+    const newPass = data.newPassword;
+    const tokenId = userData.tokenId;
+    db.collection('users').doc(tokenId).onSnapshot(async (snapshot) => {
+        const user = snapshot.data();
+        let sameVal = false;
+        let errVal: any;
+        bcrypt.compare(currPass, user?.hpw, function(err, same){
+            errVal = err;
+            sameVal = same;
+        }).then(result => {
+            if(errVal){
+                return {err: "Error comparing"}
+            }
+            else if(sameVal){
+                bcrypt.hash(newPass, "$2b$10$naep/GGixFkQDlpnBuEJAO").then(res => {
+                    hashVal = res;
+                    console.log("No Errors")
+                    snapshot.ref.update({
+                        hpw: hashVal,
+                        resetPassword: false
+                    }).then(_ => {
+                        console.log('User updated successfully');
+                        return {success: "Update success"}
+                    }).catch(error => {
+                        console.error(error, 'Error updating User');
+                    });
+                }).catch(err1 => {
+                    console.log(err1);
+                });
+            }
+            else{
+                return {err: "Error updating"}
+            }
+            return {result: result}
+        }).catch(err => {
+            console.log(err);
+        });
+    });
+});
+
 export const sendEmailToUser = functions.firestore.document('users/{doc_id}')
         .onCreate(async (snapshot, context) => {
             console.log("Creating User");
@@ -214,7 +259,7 @@ export const deleteUserWithData = functions.firestore.document('users/{doc_id}')
                     writeBatch.update(group.ref, {'group_members': newGroupMembers});
 
                     console.log("Index: " + index + " group length: " + groupMembers.length)
-                    if(index == (groupMembers.length - 1)){
+                    if(index === (groupMembers.length - 1)){
                         writeBatch.commit().then( data => {
                             console.log("Done deleting user associated data");
                             
