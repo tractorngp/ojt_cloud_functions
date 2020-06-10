@@ -234,3 +234,47 @@ export const deleteUserWithData = functions.firestore.document('users/{doc_id}')
         });
 
 });
+
+export const resetUserPassword = functions.https.onCall((data, context) => {
+    const userIdToReset = data.tokenId;
+    let length = 8,
+        charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+        pwd = "";
+    for (var i = 0, n = charset.length; i < length; ++i) {
+        pwd += charset.charAt(Math.floor(Math.random() * n));
+    }
+    const hashedPw = bcrypt.hashSync(pwd,"$2b$10$naep/GGixFkQDlpnBuEJAO");
+    db.collection('users').doc(''+userIdToReset)
+    .update({
+        hpw: hashedPw
+    }).then( _ => {
+        db.collection('users').doc(''+userIdToReset)
+        .get().then(userData => {
+            const userD = userData.data();
+            let userEmail = '';
+            if(userD){
+                userEmail = userD.email;
+            }
+            const mailOptions = {
+                from: 'Tractor NGP <tractorpgapp@gmail.com>',
+                to: userEmail,
+                subject: 'Tractor NGP OJT Reset Password for ' + userIdToReset, // email subject
+                html: `<p style="font-size: 16px;">Your temporary reset password is: ${pwd}</p> <br />`
+                // email content in HTML
+            };
+            // returning result
+            transporter.sendMail(mailOptions, (err: any, info: any) => {
+                if(err){
+                    console.log(err)
+                }
+                console.log(info);
+            });
+        }).catch(error => {
+            console.log(error);
+            return error;
+        });
+    }).catch(error => {
+        console.log(error);
+        return error;
+    })
+});
